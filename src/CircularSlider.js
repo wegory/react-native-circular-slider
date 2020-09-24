@@ -1,10 +1,9 @@
-import React, { PureComponent } from 'react';
+import React, { PureComponent, PropTypes } from 'react';
 import { PanResponder, View } from 'react-native';
 import Svg, { Circle, G, LinearGradient, Path, Defs, Stop } from 'react-native-svg';
 import range from 'lodash.range';
 import { interpolateHcl as interpolateGradient } from 'd3-interpolate';
 import ClockFace from './ClockFace';
-import PropTypes from 'prop-types'; // ES6
 
 
 function calculateArcColor(index0, segments, gradientColorFrom, gradientColorTo) {
@@ -48,21 +47,21 @@ function getGradientId(index) {
 
 export default class CircularSlider extends PureComponent {
 
-  static propTypes = {
-    onUpdate: PropTypes.func.isRequired,
-    startAngle: PropTypes.number.isRequired,
-    angleLength: PropTypes.number.isRequired,
-    segments: PropTypes.number,
-    strokeWidth: PropTypes.number,
-    radius: PropTypes.number,
-    gradientColorFrom: PropTypes.string,
-    gradientColorTo: PropTypes.string,
-    showClockFace: PropTypes.bool,
-    clockFaceColor: PropTypes.string,
-    bgCircleColor: PropTypes.string,
-    stopIcon: PropTypes.element,
-    startIcon: PropTypes.element,
-  }
+  // static propTypes = {
+  //   onUpdate: PropTypes.func.isRequired,
+  //   startAngle: PropTypes.number.isRequired,
+  //   angleLength: PropTypes.number.isRequired,
+  //   segments: PropTypes.number,
+  //   strokeWidth: PropTypes.number,
+  //   radius: PropTypes.number,
+  //   gradientColorFrom: PropTypes.string,
+  //   gradientColorTo: PropTypes.string,
+  //   showClockFace: PropTypes.bool,
+  //   clockFaceColor: PropTypes.string,
+  //   bgCircleColor: PropTypes.string,
+  //   stopIcon: PropTypes.element,
+  //   startIcon: PropTypes.element,
+  // }
 
   static defaultProps = {
     segments: 5,
@@ -79,51 +78,7 @@ export default class CircularSlider extends PureComponent {
     circleCenterY: false,
   }
 
-  componentWillMount() {
-    this._sleepPanResponder = PanResponder.create({
-      onMoveShouldSetPanResponder: (evt, gestureState) => true,
-      onMoveShouldSetPanResponderCapture: (evt, gestureState) => true,
-      onPanResponderGrant: (evt, gestureState) => this.setCircleCenter(),
-      onPanResponderMove: (evt, { moveX, moveY }) => {
-        const { circleCenterX, circleCenterY } = this.state;
-        const { angleLength, startAngle, onUpdate } = this.props;
 
-        const currentAngleStop = (startAngle + angleLength) % (2 * Math.PI);
-        let newAngle = Math.atan2(moveY - circleCenterY, moveX - circleCenterX) + Math.PI/2;
-
-        if (newAngle < 0) {
-          newAngle += 2 * Math.PI;
-        }
-
-        let newAngleLength = currentAngleStop - newAngle;
-
-        if (newAngleLength < 0) {
-          newAngleLength += 2 * Math.PI;
-        }
-
-        onUpdate({ startAngle: newAngle, angleLength: newAngleLength % (2 * Math.PI) });
-      },
-    });
-
-    this._wakePanResponder = PanResponder.create({
-      onMoveShouldSetPanResponder: (evt, gestureState) => true,
-      onMoveShouldSetPanResponderCapture: (evt, gestureState) => true,
-      onPanResponderGrant: (evt, gestureState) => this.setCircleCenter(),
-      onPanResponderMove: (evt, { moveX, moveY }) => {
-        const { circleCenterX, circleCenterY } = this.state;
-        const { angleLength, startAngle, onUpdate } = this.props;
-
-        let newAngle = Math.atan2(moveY - circleCenterY, moveX - circleCenterX) + Math.PI/2;
-        let newAngleLength = (newAngle - startAngle) % (2 * Math.PI);
-
-        if (newAngleLength < 0) {
-          newAngleLength += 2 * Math.PI;
-        }
-
-        onUpdate({ startAngle, angleLength: newAngleLength });
-      },
-    });
-  }
 
   onLayout = () => {
     this.setCircleCenter();
@@ -143,7 +98,7 @@ export default class CircularSlider extends PureComponent {
 
   render() {
     const { startAngle, angleLength, segments, strokeWidth, radius, gradientColorFrom, gradientColorTo, bgCircleColor,
-      showClockFace, clockFaceColor, startIcon, stopIcon } = this.props;
+      showClockFace, clockFaceColor, startIcon, stopIcon, isBackground } = this.props;
 
     const containerWidth = this.getContainerWidth();
 
@@ -151,7 +106,10 @@ export default class CircularSlider extends PureComponent {
     const stop = calculateArcCircle(segments - 1, segments, radius, startAngle, angleLength);
 
     return (
-      <View style={{ width: containerWidth, height: containerWidth }} onLayout={this.onLayout}>
+      <View style={{ width: containerWidth, height: containerWidth, elevation: 3,
+        shadowOffset: { width: 1, height: 3 },
+        shadowOpacity: 0.14,
+        shadowRadius: 4 }} onLayout={this.onLayout}>
         <Svg
           height={containerWidth}
           width={containerWidth}
@@ -175,6 +133,7 @@ export default class CircularSlider extends PureComponent {
           {/*
             ##### Circle
           */}
+          
 
           <G transform={{ translate: `${strokeWidth/2 + radius + 1}, ${strokeWidth/2 + radius + 1}` }}>
             <Circle
@@ -216,13 +175,12 @@ export default class CircularSlider extends PureComponent {
               fill={gradientColorTo}
               transform={{ translate: `${stop.toX}, ${stop.toY}` }}
               onPressIn={() => this.setState({ angleLength: angleLength + Math.PI / 2 })}
-              {...this._wakePanResponder.panHandlers}
             >
               <Circle
-                r={(strokeWidth - 1) / 2}
-                fill={bgCircleColor}
-                stroke={gradientColorTo}
-                strokeWidth="1"
+                r={isBackground ? (strokeWidth - 1) / 2 : (strokeWidth - 1) / 2 + 2.5  }
+                fill={gradientColorTo}
+                stroke={"#FFF"}
+                strokeWidth={isBackground ? "1" : "3.6"}
               />
               {
                 stopIcon
@@ -237,11 +195,10 @@ export default class CircularSlider extends PureComponent {
               fill={gradientColorFrom}
               transform={{ translate: `${start.fromX}, ${start.fromY}` }}
               onPressIn={() => this.setState({ startAngle: startAngle - Math.PI / 2, angleLength: angleLength + Math.PI / 2 })}
-              {...this._sleepPanResponder.panHandlers}
             >
               <Circle
-                r={(strokeWidth - 1) / 2}
-                fill={bgCircleColor}
+                r={(strokeWidth - 1) / 2 }
+                fill={gradientColorFrom}
                 stroke={gradientColorFrom}
                 strokeWidth="1"
               />
