@@ -6,11 +6,6 @@ import PropTypes from 'prop-types'; // ES6
 
 export default class ClockFace extends PureComponent {
 
-  static propTypes = {
-    r: PropTypes.number,
-    stroke: PropTypes.string,
-  }
-
   render() {
     const { r, stroke } = this.props;
     const faceRadius = r - 5;
